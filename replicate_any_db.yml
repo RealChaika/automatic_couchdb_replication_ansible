@@ -19,6 +19,7 @@
         password: "{{ admin_password }}"
         force_basic_auth: true
         body_format: json
+        # You could allow 412 responses too, if the DB already exists
         status_code: 201
       become: yes
       
@@ -33,7 +34,7 @@
         body_format: json
         # Examples: https://dev.to/yenyih/how-easy-to-setup-master-master-replication-in-couchdb-2ijj
         body: "{ \"create_target\": true, \"continuous\": true, \"source\": { \"url\": \"{{ CouchDBURL }}/{{ replicated_database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }, \"target\": { \"url\": \"{{ hostvars[item].CouchDBURL }}/{{ replicated_database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }  }"
-        status_code: 201,202,409
+        status_code: 201
       with_items: "{{ groups['all'] }}"
       become: yes
       # Setting up replication to itself wouldn't be optimal

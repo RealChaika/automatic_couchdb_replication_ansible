@@ -78,7 +78,7 @@
         password: "{{ admin_password }}"
         force_basic_auth: true
         body_format: json
-        status_code: 201,202,409
+        status_code: 201
       become: yes
 
 
@@ -92,7 +92,7 @@
         force_basic_auth: true
         body_format: json
         body: "{ \"create_target\": true, \"continuous\": true, \"source\": { \"url\": \"{{ CouchDBURL }}/{{ replicated_database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }, \"target\": { \"url\": \"{{ hostvars[item].CouchDBURL }}/{{ replicated_database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }  }"
-        status_code: 201,202,409
+        status_code: 201
       with_items: "{{ groups['all'] }}"
       become: yes
       when: item != inventory_hostname
