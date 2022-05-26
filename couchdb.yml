@@ -1,0 +1,98 @@
+---
+- hosts: all
+  any_errors_fatal: true
+  gather_facts: yes
+  tasks:
+
+    - name: update packages
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      become: yes
+  
+    - name: Install Required Packages
+      apt:
+        pkg:
+          - curl
+          - apt-transport-https
+          - gnupg
+        state: latest
+        update_cache: true
+
+
+
+    - name: Add Couchdb package repo
+      shell: 
+        cmd: 'curl https://couchdb.apache.org/repo/keys.asc | gpg --dearmor | sudo tee /usr/share/keyrings/couchdb-archive-keyring.gpg >/dev/null 2>&1 && source /etc/os-release && echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main" | sudo tee /etc/apt/sources.list.d/couchdb.list >/dev/null'
+      become: yes
+      args:
+        executable: /bin/bash
+
+    - name: update packages
+      apt:
+        update_cache: yes
+      become: yes
+
+
+
+    - name: Install couchdb
+      shell:
+        cmd: |
+          echo "couchdb couchdb/mode select standalone
+          couchdb couchdb/mode seen true
+          couchdb couchdb/nodename string couchdb@{{ fqdn }}
+          couchdb couchdb/nodename seen true
+          couchdb couchdb/bindaddress string 0.0.0.0
+          couchdb couchdb/bindaddress seen true
+          couchdb couchdb/cookie string {{ erlang_cookie }}
+          couchdb couchdb/cookie seen true
+          couchdb couchdb/adminpass password {{ admin_password}}
+          couchdb couchdb/adminpass seen true
+          couchdb couchdb/adminpass_again password {{ admin_password }}
+          couchdb couchdb/adminpass_again seen true" | sudo debconf-set-selections
+          DEBIAN_FRONTEND=noninteractive apt-get install -y couchdb
+      become: yes
+      args:
+        executable: /bin/bash
+    
+
+    
+
+    - name: Create Basic Base64 Auth
+      shell: echo -n 'admin:{{ admin_password }}' | base64
+      register: authorization
+      changed_when: false
+      become: yes
+
+    - name: Enable and start up Couchdb service on restart
+      systemd:
+        name: couchdb
+        state: started
+        enabled: yes
+
+    - name: Create Database
+      uri:
+        url: "{{ CouchDBURL }}/{{ replicated_database_name }}"
+        method: PUT
+        user: "admin"
+        password: "{{ admin_password }}"
+        force_basic_auth: true
+        body_format: json
+        status_code: 201,202,409
+      become: yes
+
+
+
+    - name: Set up replication
+      uri:
+        url: "{{ CouchDBURL }}/_replicator"
+        method: POST
+        user: "admin"
+        password: "{{ admin_password }}"
+        force_basic_auth: true
+        body_format: json
+        body: "{ \"create_target\": true, \"continuous\": true, \"source\": { \"url\": \"{{ CouchDBURL }}/{{ replicated_database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }, \"target\": { \"url\": \"{{ hostvars[item].CouchDBURL }}/{{ replicated_database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }  }"
+        status_code: 201,202,409
+      with_items: "{{ groups['all'] }}"
+      become: yes
+      when: item != inventory_hostname

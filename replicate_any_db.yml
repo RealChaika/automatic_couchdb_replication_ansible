@@ -1,0 +1,40 @@
+---
+- hosts: all
+  any_errors_fatal: true
+  gather_facts: yes
+  tasks:
+
+    # Required for setting up replication, this is Basic HTTP Auth
+    - name: Create Basic Base64 Auth
+      shell: echo -n 'admin:{{ admin_password }}' | base64
+      register: authorization
+      changed_when: false
+      become: yes
+
+    - name: Create Database
+      uri:
+        url: "{{ CouchDBURL }}/{{ replicated_database_name }}"
+        method: PUT
+        user: "admin"
+        password: "{{ admin_password }}"
+        force_basic_auth: true
+        body_format: json
+        status_code: 201
+      become: yes
+      
+
+    - name: Set up replication
+      uri:
+        url: "{{ CouchDBURL }}/_replicator"
+        method: POST
+        user: "admin"
+        password: "{{ admin_password }}"
+        force_basic_auth: true
+        body_format: json
+        # Examples: https://dev.to/yenyih/how-easy-to-setup-master-master-replication-in-couchdb-2ijj
+        body: "{ \"create_target\": true, \"continuous\": true, \"source\": { \"url\": \"{{ CouchDBURL }}/{{ replicated_database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }, \"target\": { \"url\": \"{{ hostvars[item].CouchDBURL }}/{{ replicated_database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }  }"
+        status_code: 201,202,409
+      with_items: "{{ groups['all'] }}"
+      become: yes
+      # Setting up replication to itself wouldn't be optimal
+      when: item != inventory_hostname

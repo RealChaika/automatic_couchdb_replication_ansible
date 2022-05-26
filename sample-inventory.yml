@@ -1,0 +1,34 @@
+all:
+  hosts:
+    provider-region-host-1:
+      ansible_ssh_user: root
+      ansible_host: 127.0.0.1
+      ansible_ssh_port: "22"
+      # What other nodes will point their replication target as (i.e it has to be reachable by each other node. I used Wireguard to create a mesh network for secure communication)
+      CouchDBURL: "http://10.0.0.1:5984"
+      # This is used as the node name
+      fqdn: "fully.qualified.domain.name"
+
+    provider-region2-host-1:
+      ansible_ssh_user: root
+      ansible_host: 192.168.0.1
+      ansible_ssh_port: "22"
+      CouchDBURL: "http://10.1.0.1:5984"
+      fqdn: "wow.an.example.tld"
+
+    provider-region3-host-1:
+      ansible_ssh_user: root
+      ansible_host: 10.0.6.4
+      ansible_ssh_port: "22"
+      CouchDBURL: "http://10.2.0.1:5984"
+      fqdn: "another-example.tld"
+
+  vars:
+    # name of the database this script will create and set up replication for
+    replicated_database_name: "core-data"
+    # CouchDB "Admin" user password
+    admin_password: "<Super Secret Password For Admin User>"
+    # https://www.erlang.org/doc/reference_manual/distributed.html
+    # Any alphanumeric character up to 255 characters in size
+    erlang_cookie: "< This isn't actually useful unless you want clustering >"
+
