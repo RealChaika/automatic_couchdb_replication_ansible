@@ -1,0 +1,25 @@
+---
+- hosts: all
+  any_errors_fatal: true
+  gather_facts: yes
+  tasks:
+
+    # Required for setting up replication, this is Basic HTTP Auth
+    - name: Create Basic Base64 Auth
+      shell: echo -n 'admin:{{ admin_password }}' | base64
+      register: authorization
+      changed_when: false
+      become: yes
+
+      
+
+    - name: Create Specific Database
+      uri:
+        url: "{{ CouchDBURL }}/{{ database_name }}"
+        method: PUT
+        user: "admin"
+        password: "{{ admin_password }}"
+        force_basic_auth: true
+        status_code: 201
+      become: yes
+

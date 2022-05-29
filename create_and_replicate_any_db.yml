@@ -13,14 +13,14 @@
 
     - name: Create Database
       uri:
-        url: "{{ CouchDBURL }}/{{ replicated_database_name }}"
+        url: "{{ CouchDBURL }}/{{ database_name }}"
         method: PUT
         user: "admin"
         password: "{{ admin_password }}"
         force_basic_auth: true
         body_format: json
-        # You could allow 412 responses too, if the DB already exists
-        status_code: 201
+        # We accept 412 responses too, if the database already exists.
+        status_code: 201, 412
       become: yes
       
 
@@ -33,7 +33,7 @@
         force_basic_auth: true
         body_format: json
         # Examples: https://dev.to/yenyih/how-easy-to-setup-master-master-replication-in-couchdb-2ijj
-        body: "{ \"create_target\": true, \"continuous\": true, \"source\": { \"url\": \"{{ CouchDBURL }}/{{ replicated_database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }, \"target\": { \"url\": \"{{ hostvars[item].CouchDBURL }}/{{ replicated_database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }  }"
+        body: "{ \"create_target\": true, \"continuous\": true, \"source\": { \"url\": \"{{ CouchDBURL }}/{{ database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }, \"target\": { \"url\": \"{{ hostvars[item].CouchDBURL }}/{{ database_name }}\", \"headers\": { \"Authorization\": \"Basic {{ authorization.stdout }}\" } }  }"
         status_code: 201
       with_items: "{{ groups['all'] }}"
       become: yes

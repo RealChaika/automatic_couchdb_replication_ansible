@@ -17,4 +17,19 @@ ansible-playbook -i "sample-inventory.yml" "couchdb.yml"
 
 There is another playbook made to automatically create and set up of replication of a specific database.
 
-ansible-playbook -i "sample-inventory.yml" "replicate_any_db.yml"
+ansible-playbook -i "sample-inventory.yml" "create_and_replicate_any_db.yml"  -e "database_name=example"
+
+A few other helpful playbooks:
+
+Delete All Replications (Haven't found a better way then just deleting the entire _replicator database entirely and recreating it later):
+
+ansible-playbook -i "sample-inventory.yml" "delete_all_replications.yml"
+
+You'll need to recreate the _replicator database after if you want to use it again...
+
+ansible-playbook -i "sample-inventory.yml" "create_any_database_no_replication.yml" -e "database_name=_replicator"
+
+
+Delete Specific Database:
+
+ansible-playbook -i "sample-inventory.yml" "delete_any_database.yml" -e "database_name=example"

@@ -1,0 +1,24 @@
+---
+- hosts: all
+  any_errors_fatal: true
+  gather_facts: yes
+  tasks:
+
+    # Required for setting up replication, this is Basic HTTP Auth
+    - name: Create Basic Base64 Auth
+      shell: echo -n 'admin:{{ admin_password }}' | base64
+      register: authorization
+      changed_when: false
+      become: yes
+      
+
+    - name: Delete Database
+      uri:
+        url: "{{ CouchDBURL }}/_replicator"
+        method: DELETE
+        user: "admin"
+        password: "{{ admin_password }}"
+        force_basic_auth: true
+        # Examples: https://dev.to/yenyih/how-easy-to-setup-master-master-replication-in-couchdb-2ijj
+        status_code: 200
+      become: yes
